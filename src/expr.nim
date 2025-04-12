@@ -13,7 +13,7 @@ type
       num: int
   Combinator* = enum
     S, K, I,
-    Inc = "<inc>", StdIn = "<stdin>"
+    Inc = "<inc>", Read = "<read>"
 
 func `$`(self: Atom): string =
   if self.isComb:
@@ -56,8 +56,9 @@ func pair*(left: Combinator, right: Expr): Expr =
 func pair*(left, right: Combinator): Expr =
   Expr(isLeaf: false, left: leaf(left), right: leaf(right))
 
-func reduce*(self: var Expr) =
-  var stack: seq[Expr] = @[]
+var stack: seq[Expr] = @[]
+
+proc reduce*(self: Expr) =
   stack.add(self)
 
   while true:
@@ -78,28 +79,30 @@ func reduce*(self: var Expr) =
           y = stack[^3].right
           z = stack[^4].right
         stack.setLen(stack.len - 3)
-        stack[^1] = pair(pair(x, z), pair(y, z))
+        stack[^1].left = pair(x, z)
+        stack[^1].right = pair(y, z)
       elif stack[^1].isCombOf(Inc) and stack.len() > 1:
         stack.setLen(stack.len - 1)
-        var n = stack[^1].right
-        n.reduce()
+        stack[^1].right.reduce()
+        let n = stack.pop()
         if n.isLeaf and n.item.isNum:
           stack[^1] = num(n.item.num + 1)
         else:
           raise newException(Exception, "cannot increment non number")
-      elif stack[^1].isCombOf(StdIn):
+      elif stack[^1].isCombOf(Read):
         raise newException(Exception, "todo")
       else:
-        break
+        return
     else:
-      break
-  self = stack[^1]
+      return
 
-proc run*(self: var Expr): int =
-  self = pair(self, StdIn)
+proc run*(self: Expr): int =
+  var current = pair(self, Read)
+  var i = 0
   while true:
-    var head = pair(pair(pair(self, K), Inc), num(0))
+    var head = pair(pair(pair(current, K), Inc), num(0))
     head.reduce()
+    head = stack.pop()
     if not (head.isLeaf and head.item.isNum):
       raise newException(Exception, "invalid output format")
     let n = head.item.num
@@ -107,5 +110,5 @@ proc run*(self: var Expr): int =
       return n - 256
     write(stdout, char(n))
     flushFile(stdout)
-    self = pair(self, pair(K, I))
+    current = pair(current, pair(K, I))
 
