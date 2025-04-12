@@ -56,53 +56,49 @@ func pair*(left: Combinator, right: Expr): Expr =
 func pair*(left, right: Combinator): Expr =
   Expr(isLeaf: false, left: leaf(left), right: leaf(right))
 
-var stack: seq[Expr] = @[]
+var stack*: seq[Expr] = @[]
 
-proc reduce*(self: Expr) =
+proc reduce*(self: Expr): Expr =
   stack.add(self)
 
   while true:
     while not stack[^1].isLeaf:
       stack.add(stack[^1].left)
 
-    if stack[^1].item.isComb:
-      if stack[^1].isCombOf(I) and stack.len() > 1:
-        stack.setLen(stack.len - 1)
-        stack[^1] = stack[^1].right
-      elif stack[^1].isCombOf(K) and stack.len() > 2:
-        let x = stack[^2].right
-        stack.setLen(stack.len - 2)
-        stack[^1] = x
-      elif stack[^1].isCombOf(S) and stack.len() > 3:
-        let
-          x = stack[^2].right
-          y = stack[^3].right
-          z = stack[^4].right
-        stack.setLen(stack.len - 3)
-        stack[^1].left = pair(x, z)
-        stack[^1].right = pair(y, z)
-      elif stack[^1].isCombOf(Inc) and stack.len() > 1:
-        stack.setLen(stack.len - 1)
-        stack[^1].right.reduce()
-        let n = stack.pop()
-        if n.isLeaf and n.item.isNum:
-          stack[^1] = num(n.item.num + 1)
-        else:
-          raise newException(Exception, "cannot increment non number")
-      elif stack[^1].isCombOf(Read):
-        raise newException(Exception, "todo")
+    let top = stack.pop()
+
+    if not top.item.isComb:
+      return top
+
+    if top.isCombOf(I) and stack.len() > 0:
+      stack[^1] = stack[^1].right
+    elif top.isCombOf(K) and stack.len() > 1:
+      let x = stack[^1].right
+      discard stack.pop()
+      stack[^1] = x
+    elif top.isCombOf(S) and stack.len() > 2:
+      let
+        x = stack.pop().right
+        y = stack.pop().right
+        z = stack[^1].right
+      stack[^1].left = pair(x, z)
+      stack[^1].right = pair(y, z)
+    elif top.isCombOf(Inc) and stack.len() > 0:
+      let n = stack[^1].right.reduce()
+      if n.isLeaf and n.item.isNum:
+        stack[^1] = num(n.item.num + 1)
       else:
-        return
+        raise newException(Exception, "cannot increment non number")
+    elif top.isCombOf(Read):
+      raise newException(Exception, "todo")
     else:
-      return
+      return top
 
 proc run*(self: Expr): int =
   var current = pair(self, Read)
-  var i = 0
   while true:
     var head = pair(pair(pair(current, K), Inc), num(0))
-    head.reduce()
-    head = stack.pop()
+    head = head.reduce()
     if not (head.isLeaf and head.item.isNum):
       raise newException(Exception, "invalid output format")
     let n = head.item.num
