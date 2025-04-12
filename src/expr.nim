@@ -36,9 +36,6 @@ func `$`*(self: Expr): string =
   else:
     result = $self.left & "(" & $self.right & ")"
 
-func `==`(lhs: Atom, rhs: Combinator): bool =
-  lhs.kind == kComb and lhs.comb == rhs
-
 func leaf*(item: Combinator): Expr =
   Expr(isLeaf: true, item: Atom(kind: kComb, comb: item))
 
@@ -69,7 +66,6 @@ proc reduce*(self: Expr): Expr =
   stack.add(self)
 
   while true:
-    echo stack
     while not stack[^1].isLeaf:
       stack.add(stack[^1].left)
 
@@ -82,6 +78,8 @@ proc reduce*(self: Expr): Expr =
       elif top.item.comb == K and stack.len() > 1:
         let x = stack[^1].right
         discard stack.pop()
+        stack[^1].left = leaf(I)
+        stack[^1].right = x
         stack[^1] = x
       elif top.item.comb == KI and stack.len() > 1:
         discard stack.pop()
@@ -128,14 +126,12 @@ proc reduce*(self: Expr): Expr =
             f = stack.pop().right
             nfx = stack.pop()
           stack.add(pair(f, nfx))
-    else:
-      break
+
   while stack.len() > stackLen:
     let parent = stack.pop()
     parent.left = top
     top = parent
   return top
-
 
 proc run*(self: Expr): int =
   var current = pair(self, Read)

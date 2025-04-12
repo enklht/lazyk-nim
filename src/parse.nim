@@ -37,5 +37,5 @@ func parseMany(input: string, final: char): (Expr, string) =
   return (current, remaining)
 
 func parse*(input: string): Expr =
-  let (current, remaining) = parseMany(input.strip(), '\0')
+  let (current, _) = parseMany(input.strip(), '\0')
   return current
