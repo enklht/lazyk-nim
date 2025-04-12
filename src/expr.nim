@@ -63,13 +63,17 @@ func pair*(left, right: Combinator): Expr =
 var stack*: seq[Expr] = @[]
 
 proc reduce*(self: Expr): Expr =
+  let stackLen = stack.len()
+  var top: Expr
+
   stack.add(self)
 
   while true:
+    echo stack
     while not stack[^1].isLeaf:
       stack.add(stack[^1].left)
 
-    var top = stack.pop()
+    top = stack.pop()
 
     case top.item.kind
     of kComb:
@@ -108,9 +112,9 @@ proc reduce*(self: Expr): Expr =
         let n: uint16 = if c == '\0': 256 else: uint16(c)
         stack[^1].left = pair(pair(leaf(V), ch(n)), leaf(Read))
       else:
-        return top
+        break
     of kNum:
-      return top
+      break
     of kChar:
       if stack.len() > 1:
         let n = top.item.char
@@ -125,7 +129,13 @@ proc reduce*(self: Expr): Expr =
             nfx = stack.pop()
           stack.add(pair(f, nfx))
     else:
-      return top
+      break
+  while stack.len() > stackLen:
+    let parent = stack.pop()
+    parent.left = top
+    top = parent
+  return top
+
 
 proc run*(self: Expr): int =
   var current = pair(self, Read)
