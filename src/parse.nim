@@ -16,15 +16,17 @@ func parseOne(input: string): (Expr, string) =
     (leaf(I), input[1..^1])
   of '(':
     parseMany(input[1..^1], ')')
-  of ' ', '\t', '\n':
-    parseOne(input[1..^1])
+  of ')':
+    raise newException(Exception, "unmatched delimiter")
   else:
-    raise newException(Exception, &"unknown character {input}")
+    raise newException(Exception, &"unknown character: {input[0]}")
 
 func parseMany(input: string, final: char): (Expr, string) =
+  let input = input.strip()
   var (current, remaining) = parseOne(input)
 
   while remaining.len() > 0:
+    remaining = remaining.strip()
     if remaining[0] == final:
       return (current, remaining[1..^1])
 
