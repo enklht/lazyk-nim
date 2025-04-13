@@ -16,8 +16,8 @@ type
     of kChar:
       char: uint16
   Combinator* = enum
-    S, K, I, KI, V,
-    Inc = "<inc>", Read = "<read>"
+    S, K, I, V, KI = "Ki",
+    Inc = "<inc>", Read = "<read>",
 
 func `$`(self: Atom): string =
   case self.kind
@@ -78,8 +78,6 @@ proc reduce*(self: Expr): Expr =
       elif top.item.comb == K and stack.len() > 1:
         let x = stack[^1].right
         discard stack.pop()
-        stack[^1].left = leaf(I)
-        stack[^1].right = x
         stack[^1] = x
       elif top.item.comb == KI and stack.len() > 1:
         discard stack.pop()
@@ -105,10 +103,10 @@ proc reduce*(self: Expr): Expr =
           stack[^1] = num(n.item.num + 1)
         else:
           raise newException(Exception, "cannot increment non number")
-      elif top.item.comb == Read:
+      elif top.item.comb == Read and stack.len() > 1:
         let c = readChar(stdin)
         let n: uint16 = if c == '\0': 256 else: uint16(c)
-        stack[^1].left = pair(pair(leaf(V), ch(n)), leaf(Read))
+        stack[^1].left[] = pair(pair(leaf(V), ch(n)), leaf(Read))[]
       else:
         break
     of kNum:
