@@ -61,7 +61,6 @@ func pair*(left, right: Combinator): Expr =
 
 var stack*: seq[Expr] = @[]
 
-
 proc reduce*(self: Expr): Expr =
   let bottom = stack.len()
   template applicable(n: int): bool = stack.len() - bottom >= n
