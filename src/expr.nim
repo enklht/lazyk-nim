@@ -1,7 +1,5 @@
-import strformat
-
 type
-  Expr* = ref object
+  Expr* {.acyclic.} = ref object
     case isLeaf: bool
     of true:
       item: Atom
@@ -36,33 +34,35 @@ template charExpr(c: uint16): Expr =
 func pair*(left, right: Expr): Expr {.inline.} =
   Expr(isLeaf: false, left: left, right: right)
 
-func `$`(self: Atom): string =
-  case self.kind
-  of kComb:
-    case self.val
-    of valS: "S"
-    of valK: "K"
-    of valI: "I"
-    of valV: "V"
-    of valKi: "Ki"
-    of valInc: "<inc>"
-    of valRead: "<read>"
-    else: raise newException(Exception, "unreachable")
-  of kNum:
-    $self.val
-  of kChar:
-    $char(self.val)
-  else: raise newException(Exception, "unreachable")
+when defined(debug):
+  func `$`(self: Atom): string =
+    case self.kind
+    of kComb:
+      case self.val
+      of valS: "S"
+      of valK: "K"
+      of valI: "I"
+      of valV: "V"
+      of valKi: "Ki"
+      of valInc: "<inc>"
+      of valRead: "<read>"
+      else: raise newException(Exception, "unreachable")
+    of kNum:
+      $self.val
+    of kChar:
+      $char(self.val)
+    else:
+      raise newException(Exception, "unreachable")
 
-func `$`*(self: Expr): string =
-  if self.isLeaf:
-    result = $self.item
-  elif self.right.isLeaf:
-    result = $self.left & $self.right
-  else:
-    result = $self.left & "(" & $self.right & ")"
+  func `$`*(self: Expr): string =
+    if self.isLeaf:
+      result = $self.item
+    elif self.right.isLeaf:
+      result = $self.left & $self.right
+    else:
+      result = $self.left & "(" & $self.right & ")"
 
-var stack: seq[Expr] = @[]
+var stack = newSeqOfCap[Expr](0x100000)
 
 proc reduce*(self: Expr): Expr =
   let bottom = stack.len()
@@ -146,7 +146,7 @@ proc run*(self: Expr): int =
     var head = pair(pair(pair(current, K), Inc), numExpr(0))
     head = head.reduce()
     if not (head.isLeaf and head.item.kind == kNum):
-      raise newException(Exception, &"invalid output format: {head}")
+      raise newException(Exception, "invalid output format")
     let n = head.item.val
     if n >= 256:
       return int(n - 256)
