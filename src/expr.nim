@@ -1,3 +1,5 @@
+import strformat
+
 type
   Expr* = ref object
     case isLeaf: bool
@@ -59,8 +61,11 @@ func pair*(left, right: Combinator): Expr =
 
 var stack*: seq[Expr] = @[]
 
+
 proc reduce*(self: Expr): Expr =
-  let stackLen = stack.len()
+  let bottom = stack.len()
+  template applicable(n: int): bool = stack.len() - bottom >= n
+
   var top: Expr
 
   stack.add(self)
@@ -73,46 +78,44 @@ proc reduce*(self: Expr): Expr =
 
     case top.item.kind
     of kComb:
-      if top.item.comb == I and stack.len() > 0:
+      if top.item.comb == I and applicable(1):
         stack[^1] = stack[^1].right
-      elif top.item.comb == K and stack.len() > 1:
+      elif top.item.comb == K and applicable(2):
         let x = stack[^1].right
         discard stack.pop()
         stack[^1] = x
-      elif top.item.comb == KI and stack.len() > 1:
+      elif top.item.comb == KI and applicable(2):
         discard stack.pop()
         let y = stack[^1].right
         stack[^1] = y
-      elif top.item.comb == S and stack.len() > 2:
+      elif top.item.comb == S and applicable(3):
         let
           x = stack.pop().right
           y = stack.pop().right
           z = stack[^1].right
         stack[^1].left = pair(x, z)
         stack[^1].right = pair(y, z)
-      elif top.item.comb == V and stack.len() > 2:
+      elif top.item.comb == V and applicable(3):
         let
           x = stack.pop().right
           y = stack.pop().right
           f = stack[^1].right
         stack[^1].left = pair(f, x)
         stack[^1].right = y
-      elif top.item.comb == Inc and stack.len() > 0:
+      elif top.item.comb == Inc and applicable(1):
         let n = stack[^1].right.reduce()
         if n.isLeaf and n.item.kind == kNum:
           stack[^1] = num(n.item.num + 1)
         else:
           raise newException(Exception, "cannot increment non number")
-      elif top.item.comb == Read and stack.len() > 1:
+      elif top.item.comb == Read and applicable(1):
         let c = readChar(stdin)
         let n: uint16 = if c == '\0': 256 else: uint16(c)
         stack[^1].left[] = pair(pair(leaf(V), ch(n)), leaf(Read))[]
       else:
         break
-    of kNum:
-      break
     of kChar:
-      if stack.len() > 1:
+      if applicable(1):
         let n = top.item.char
         if n == 0:
           discard stack.pop()
@@ -124,8 +127,10 @@ proc reduce*(self: Expr): Expr =
             f = stack.pop().right
             nfx = stack.pop()
           stack.add(pair(f, nfx))
+    of kNum:
+      break
 
-  while stack.len() > stackLen:
+  while stack.len() > bottom:
     let parent = stack.pop()
     parent.left = top
     top = parent
@@ -137,7 +142,7 @@ proc run*(self: Expr): int =
     var head = pair(pair(pair(current, K), Inc), num(0))
     head = head.reduce()
     if not (head.isLeaf and head.item.kind == kNum):
-      raise newException(Exception, "invalid output format")
+      raise newException(Exception, &"invalid output format: {head}")
     let n = head.item.num
     if n >= 256:
       return int(n - 256)
