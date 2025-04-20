@@ -5,30 +5,26 @@ type
       item: Atom
     of false:
       left, right: Expr
+  AtomKind = enum
+    kComb,
+    kChar,
+    kNum,
   Atom = object
-    kind: uint8
-    val: uint16
+    kind: AtomKind
+    val: uint
 
-const kComb: uint8 = 0
-const kChar: uint8 = 1
-const kNum: uint8 = 2
+let S* = Expr(isLeaf: true, item: Atom(kind: kComb))
+let K* = Expr(isLeaf: true, item: Atom(kind: kComb))
+let I* = Expr(isLeaf: true, item: Atom(kind: kComb))
+let V = Expr(isLeaf: true, item: Atom(kind: kComb))
+let Ki = Expr(isLeaf: true, item: Atom(kind: kComb))
+let Inc = Expr(isLeaf: true, item: Atom(kind: kComb))
+let Read = Expr(isLeaf: true, item: Atom(kind: kComb))
 
-template defComb(name: untyped, v: uint16) =
-  const `val name` {.inject.} = v
-  let `name`* {.inject.} = Expr(isLeaf: true, item: Atom(kind: kComb, val: v))
-
-defComb(S, 0)
-defComb(K, 1)
-defComb(I, 2)
-defComb(V, 3)
-defComb(Ki, 4)
-defComb(Inc, 5)
-defComb(Read, 6)
-
-template numExpr(n: uint16): Expr =
+template numExpr(n: uint): Expr =
   Expr(isLeaf: true, item: Atom(kind: kNum, val: n))
 
-template charExpr(c: uint16): Expr =
+template charExpr(c: uint): Expr =
   Expr(isLeaf: true, item: Atom(kind: kChar, val: c))
 
 func pair*(left, right: Expr): Expr {.inline.} =
@@ -38,21 +34,19 @@ when defined(debug):
   func `$`(self: Atom): string =
     case self.kind
     of kComb:
-      case self.val
-      of valS: "S"
-      of valK: "K"
-      of valI: "I"
-      of valV: "V"
-      of valKi: "Ki"
-      of valInc: "<inc>"
-      of valRead: "<read>"
+      case self
+      of S: "S"
+      of K: "K"
+      of I: "I"
+      of V: "V"
+      of Ki: "Ki"
+      of Inc: "<inc>"
+      of Read: "<read>"
       else: raise newException(Exception, "unreachable")
     of kNum:
       $self.val
     of kChar:
       $char(self.val)
-    else:
-      raise newException(Exception, "unreachable")
 
   func `$`*(self: Expr): string =
     if self.isLeaf:
@@ -85,10 +79,8 @@ proc reduce*(self: Expr): Expr =
       elif top == K and applicable(2):
         let x = stack[^1].right
         discard stack.pop()
-        stack[^1].left = I
-        stack[^1].right = x
         stack[^1] = x
-      elif top == KI and applicable(2):
+      elif top == Ki and applicable(2):
         discard stack.pop()
         let y = stack[^1].right
         stack[^1] = y
@@ -114,7 +106,7 @@ proc reduce*(self: Expr): Expr =
           raise newException(Exception, "cannot increment non number")
       elif top == Read and applicable(1):
         let c = readChar(stdin)
-        let n: uint16 = if c == '\0': 256 else: uint16(c)
+        let n: uint = if c == '\0': 256 else: uint(c)
         stack[^1].left[] = pair(pair(V, charExpr(n)), Read)[]
       else:
         break
@@ -151,4 +143,4 @@ proc run*(self: Expr): int =
     if n >= 256:
       return int(n - 256)
     write(stdout, char(n))
-    current = pair(current, KI)
+    current = pair(current, Ki)
