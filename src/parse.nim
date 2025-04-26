@@ -9,13 +9,13 @@ proc parseOne(input: string): (Expr, string) =
 
   case input[0]
   of 'S', 's':
-    (S, input[1..^1])
+    (S, input[1 ..^ 1])
   of 'K', 'k':
-    (K, input[1..^1])
+    (K, input[1 ..^ 1])
   of 'I', 'i':
-    (I, input[1..^1])
+    (I, input[1 ..^ 1])
   of '(':
-    parseMany(input[1..^1], ')')
+    parseMany(input[1 ..^ 1], ')')
   of ')':
     raise newException(Exception, "unmatched delimiter")
   else:
@@ -28,7 +28,7 @@ proc parseMany(input: string, final: char): (Expr, string) =
   while remaining.len() > 0:
     remaining = remaining.strip()
     if remaining[0] == final:
-      return (current, remaining[1..^1])
+      return (current, remaining[1 ..^ 1])
 
     var next: Expr
     (next, remaining) = parseOne(remaining)

@@ -5,10 +5,12 @@ type
       item: Atom
     of false:
       left, right: Expr
+
   AtomKind = enum
-    kComb,
-    kChar,
-    kNum,
+    kComb
+    kChar
+    kNum
+
   Atom = object
     kind: AtomKind
     val: uint
@@ -35,14 +37,22 @@ when defined(debug):
     case self.kind
     of kComb:
       case self
-      of S: "S"
-      of K: "K"
-      of I: "I"
-      of V: "V"
-      of Ki: "Ki"
-      of Inc: "<inc>"
-      of Read: "<read>"
-      else: raise newException(Exception, "unreachable")
+      of S:
+        "S"
+      of K:
+        "K"
+      of I:
+        "I"
+      of V:
+        "V"
+      of Ki:
+        "Ki"
+      of Inc:
+        "<inc>"
+      of Read:
+        "<read>"
+      else:
+        raise newException(Exception, "unreachable")
     of kNum:
       $self.val
     of kChar:
@@ -60,7 +70,8 @@ var stack = newSeqOfCap[Expr](0x100000)
 
 proc reduce*(self: Expr): Expr =
   let bottom = stack.len()
-  template applicable(n: int): bool = stack.len() - bottom >= n
+  template applicable(n: int): bool =
+    stack.len() - bottom >= n
 
   var top: Expr
 
@@ -106,12 +117,16 @@ proc reduce*(self: Expr): Expr =
           raise newException(Exception, "cannot increment non number")
       elif top == Read and applicable(1):
         let c = readChar(stdin)
-        let n: uint = if c == '\0': 256 else: uint(c)
+        let n: uint =
+          if c == '\0':
+            256
+          else:
+            uint(c)
         stack[^1].left[] = pair(pair(V, charExpr(n)), Read)[]
       else:
         break
     of kChar:
-       if applicable(2):
+      if applicable(2):
         let n = top.item.val
         if n == 0:
           discard stack.pop()
