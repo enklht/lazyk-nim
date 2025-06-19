@@ -37,26 +37,16 @@ when defined(debug):
     case self.kind
     of kComb:
       case self
-      of S:
-        "S"
-      of K:
-        "K"
-      of I:
-        "I"
-      of V:
-        "V"
-      of Ki:
-        "Ki"
-      of Inc:
-        "<inc>"
-      of Read:
-        "<read>"
-      else:
-        raise newException(Exception, "unreachable")
-    of kNum:
-      $self.val
-    of kChar:
-      $char(self.val)
+      of S: "S"
+      of K: "K"
+      of I: "I"
+      of V: "V"
+      of Ki: "Ki"
+      of Inc: "<inc>"
+      of Read: "<read>"
+      else: raise newException(Exception, "unreachable")
+    of kNum: $self.val
+    of kChar: $char(self.val)
 
   func `$`*(self: Expr): string =
     if self.isLeaf:
@@ -66,7 +56,7 @@ when defined(debug):
     else:
       result = $self.left & "(" & $self.right & ")"
 
-var stack = newSeqOfCap[Expr](0x100000)
+var stack = newSeq[Expr]()
 
 proc reduce*(self: Expr): Expr =
   let bottom = stack.len()
@@ -118,10 +108,7 @@ proc reduce*(self: Expr): Expr =
       elif top == Read and applicable(1):
         let c = readChar(stdin)
         let n: uint =
-          if c == '\0':
-            256
-          else:
-            uint(c)
+          if c == '\0': 256 else: uint(c)
         stack[^1].left[] = pair(pair(V, charExpr(n)), Read)[]
       else:
         break
